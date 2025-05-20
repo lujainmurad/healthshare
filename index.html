@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HealthShare Cloud</title>
+
+  <!-- Axios for HTTP requests -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <!-- Cognito config -->
+  <script>
+    const config = {
+      userPoolId: "us-east-1_TLlmmbuFn",              
+      clientId: "7nj5v7geaak5ro2v57fl35iqpn",        
+      region: "us-east-1",                          
+      redirectUri: "https://main.YOUR_ID.amplifyapp.com", 
+      authDomain: "us-east-1tllmmbufn.auth.us-east-1.amazoncognito.com" 
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+    }
+    header {
+      background-color: #4CAF50;
+      color: white;
+      padding: 20px 0;
+      margin-bottom: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      margin: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    input {
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 16px;
+      width: 80%;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Welcome to HealthShare Cloud</h1>
+    <p>Your secure platform for medical file management</p>
+  </header>
+
+  <div class="container">
+    <!-- Login -->
+    <button onclick="loginWithCognito()">Login</button>
+
+    <!-- Upload File -->
+    <h3>Upload File</h3>
+    <input type="file" id="fileInput" />
+    <input type="text" id="fileNameInput" placeholder="Enter file name (e.g., test.txt)" />
+    <button onclick="uploadFile()">Upload File</button>
+
+    <!-- Download File -->
+    <h3>Download File</h3>
+    <input type="text" id="downloadFileName" placeholder="Enter file name to download" />
+    <button onclick="downloadFile()">Download File</button>
+  </div>
+
+  <script>
+    function loginWithCognito() {
+      const loginUrl = `https://${config.authDomain}/login?client_id=${config.clientId}&response_type=code&scope=email+openid+phone&redirect_uri=${config.redirectUri}`;
+      window.location.href = loginUrl;
+    }
+
+    function uploadFile() {
+      const fileInput = document.getElementById("fileInput");
+      const fileNameInput = document.getElementById("fileNameInput");
+
+      if (!fileInput.files[0] || !fileNameInput.value) {
+        alert("Please select a file and enter a file name.");
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const filename = fileNameInput.value;
+      const reader = new FileReader();
+
+      reader.onload = function(event) {
+        const fileContent = event.target.result;
+        const url = `https://ixry1hun96.execute-api.us-east-1.amazonaws.com/prod/files`; 
+
+        axios.post(`${url}?fileName=${filename}`, fileContent, {
+          headers: {
+            "Content-Type": file.type || "application/octet-stream"
+          }
+        })
+        .then(response => {
+          alert("File uploaded successfully!");
+        })
+        .catch(error => {
+          alert("Upload failed: " + error.message);
+        });
+      };
+
+      reader.readAsText(file);
+    }
+
+    function downloadFile() {
+      const fileName = document.getElementById("downloadFileName").value;
+      if (!fileName) {
+        alert("Please enter a file name.");
+        return;
+      }
+
+      const xhr = new XMLHttpRequest();
+     xhr.open("GET", `https://ixry1hun96.execute-api.us-east-1.amazonaws.com/prod/files?fileName=${encodeURIComponent(fileName)}`, true);
+
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
+          const decoded = atob(response.body);
+          const blob = new Blob([decoded], { type: 'application/octet-stream' });
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = fileName;
+          link.click();
+        } else {
+          alert("Failed to download file: " + xhr.statusText);
+        }
+      };
+
+      xhr.onerror = function() {
+        alert("Request failed.");
+      };
+
+      xhr.send();
+    }
+  </script>
+</body>
+</html>
